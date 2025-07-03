@@ -134,7 +134,7 @@ def compute_all_metrics(preds, labels):
     return acc, precision, recall, f1
 
 # === Test Dataset Path ===
-test_dir = "/kaggle/working/Comys_Hackathon5/Task_B/test"
+test_dir = "comsys-hackathon-taskB/test_data"
 flatten_distortion_folders(test_dir)  # Optional if distortion/ folder exists
 
 # === Test Dataset and DataLoader ===
