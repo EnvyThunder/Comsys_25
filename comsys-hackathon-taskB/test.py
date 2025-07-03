@@ -143,7 +143,7 @@ test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, num_workers
 
 # === Load Best Model ===
 model = SiameseNet().to(device)
-model.load_state_dict(torch.load('/best_siamese_convnext.pth'))
+model.load_state_dict(torch.load('best_siamese_convnext.pth'))
 model.eval()
 
 criterion = ContrastiveLoss()
