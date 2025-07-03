@@ -134,41 +134,46 @@ def compute_all_metrics(preds, labels):
     return acc, precision, recall, f1
 
 # === Test Dataset Path ===
-test_dir = "comsys-hackathon-taskB/test_data"
-flatten_distortion_folders(test_dir)  # Optional if distortion/ folder exists
+def main():
+    test_dir = "comsys-hackathon-taskB/test_data"
+    flatten_distortion_folders(test_dir)  # Optional if distortion/ folder exists
 
-# === Test Dataset and DataLoader ===
-test_dataset = SiameseDistortionDataset(root_dir=test_dir, transform=test_transform)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, num_workers=2, pin_memory=True)
+    # === Test Dataset and DataLoader ===
+    test_dataset = SiameseDistortionDataset(root_dir=test_dir, transform=test_transform)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, num_workers=2, pin_memory=True)
 
-# === Load Best Model ===
-model = SiameseNet().to(device)
-model.load_state_dict(torch.load('best_siamese_convnext.pth'))
-model.eval()
+    # === Load Best Model ===
+    model = SiameseNet().to(device)
+    model.load_state_dict(torch.load('best_siamese_convnext.pth'))
+    model.eval()
 
-criterion = ContrastiveLoss()
-optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+    criterion = ContrastiveLoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
 
 
-# === Test Loop ===
-all_test_preds, all_test_labels = [], []
-total_test_loss = 0
+    # === Test Loop ===
+    all_test_preds, all_test_labels = [], []
+    total_test_loss = 0
 
-with torch.no_grad():
-    for img1, img2, label in tqdm(test_loader, desc="[Test]"):
-        img1, img2, label = img1.to(device), img2.to(device), label.to(device)
-        feat1, feat2 = model(img1, img2)
-        loss = criterion(feat1, feat2, label)
-        total_test_loss += loss.item()
+    with torch.no_grad():
+        for img1, img2, label in tqdm(test_loader, desc="[Test]"):
+            img1, img2, label = img1.to(device), img2.to(device), label.to(device)
+            feat1, feat2 = model(img1, img2)
+            loss = criterion(feat1, feat2, label)
+            total_test_loss += loss.item()
 
-        distance = F.pairwise_distance(feat1, feat2)
-        preds = (distance < 0.5).float()
-        all_test_preds.extend(preds.cpu().numpy())
-        all_test_labels.extend(label.cpu().numpy())
+            distance = F.pairwise_distance(feat1, feat2)
+            preds = (distance < 0.5).float()
+            all_test_preds.extend(preds.cpu().numpy())
+            all_test_labels.extend(label.cpu().numpy())
 
-# === Metrics ===
-avg_test_loss = total_test_loss / len(test_loader)
-test_acc, test_prec, test_recall, test_f1 = compute_all_metrics(all_test_preds, all_test_labels)
+    # === Metrics ===
+    avg_test_loss = total_test_loss / len(test_loader)
+    test_acc, test_prec, test_recall, test_f1 = compute_all_metrics(all_test_preds, all_test_labels)
 
-print(f"Test Loss={avg_test_loss:.4f}, Test Acc={test_acc:.4f}, Precision={test_prec:.4f}, Recall={test_recall:.4f}, F1={test_f1:.4f}")
+    print(f"Test Loss={avg_test_loss:.4f}, Test Acc={test_acc:.4f}, Precision={test_prec:.4f}, Recall={test_recall:.4f}, F1={test_f1:.4f}")
+
+
+if __name__ == "__main__":
+    main()

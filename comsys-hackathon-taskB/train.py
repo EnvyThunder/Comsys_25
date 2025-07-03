@@ -16,7 +16,7 @@ from albumentations.pytorch import ToTensorV2
 import timm
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-#Seeding made fixed
+# === Seeding ===
 def seed_everything(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -25,12 +25,7 @@ def seed_everything(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-seed_everything(42)
-
-#Cuda declaration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-#distortion folder flattening 
+# === Folder Flattening ===
 def flatten_distortion_folders(root_dir):
     for class_name in os.listdir(root_dir):
         class_path = os.path.join(root_dir, class_name)
@@ -43,7 +38,7 @@ def flatten_distortion_folders(root_dir):
                     shutil.move(src, dst)
             os.rmdir(distortion_path)
 
-# Siamese Dataset
+# === Dataset ===
 class SiameseDistortionDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir
@@ -86,7 +81,7 @@ class SiameseDistortionDataset(Dataset):
             img2 = self.transform(image=img2)['image']
         return img1, img2, label
 
-# Dataset for the Siamese model
+# === Model ===
 class SiameseNet(nn.Module):
     def __init__(self):
         super().__init__()
@@ -106,7 +101,7 @@ class SiameseNet(nn.Module):
     def forward(self, x1, x2):
         return self.forward_once(x1), self.forward_once(x2)
 
-# Loss function
+# === Loss ===
 class ContrastiveLoss(nn.Module):
     def __init__(self, margin=1.0):
         super().__init__()
@@ -117,7 +112,7 @@ class ContrastiveLoss(nn.Module):
         loss = label * distance.pow(2) + (1 - label) * (torch.clamp(self.margin - distance, min=0.0).pow(2))
         return loss.mean()
 
-# Calculating metrics
+# === Metrics ===
 def compute_all_metrics(preds, labels):
     preds_np = np.array(preds)
     labels_np = np.array(labels)
@@ -127,107 +122,115 @@ def compute_all_metrics(preds, labels):
     f1 = f1_score(labels_np, preds_np, zero_division=0)
     return acc, precision, recall, f1
 
-# Loading data
-train = "data/Task_B/train"
-val = "data/Task_B/val"
-flatten_distortion_folders(train)
-flatten_distortion_folders(val)
+# === Main training code ===
+def main():
+    seed_everything(42)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# transforms
-train_transform = A.Compose([
-    A.Resize(224, 224),
-    A.HorizontalFlip(p=0.5),
-    A.RandomBrightnessContrast(p=0.2),
-    A.HueSaturationValue(p=0.2),
-    A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
-    ToTensorV2()
-])
+    # Paths
+    train_dir = "data/Task_B/train"
+    val_dir = "data/Task_B/val"
+    flatten_distortion_folders(train_dir)
+    flatten_distortion_folders(val_dir)
 
-val_transform = A.Compose([
-    A.Resize(224, 224),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
-    ToTensorV2()
-])
+    # Transforms
+    train_transform = A.Compose([
+        A.Resize(224, 224),
+        A.HorizontalFlip(p=0.5),
+        A.RandomBrightnessContrast(p=0.2),
+        A.HueSaturationValue(p=0.2),
+        A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.05, rotate_limit=15, p=0.5),
+        A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+        ToTensorV2()
+    ])
+    val_transform = A.Compose([
+        A.Resize(224, 224),
+        A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+        ToTensorV2()
+    ])
 
-# Train and Val loaders
-g = torch.Generator()
-g.manual_seed(42)
+    # Datasets and Dataloaders
+    g = torch.Generator()
+    g.manual_seed(42)
 
-train_dataset = SiameseDistortionDataset(root_dir=train, transform=train_transform)
-val_dataset = SiameseDistortionDataset(root_dir=val, transform=val_transform)
+    train_dataset = SiameseDistortionDataset(root_dir=train_dir, transform=train_transform)
+    val_dataset = SiameseDistortionDataset(root_dir=val_dir, transform=val_transform)
 
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, generator=g, num_workers=2, pin_memory=True)
-val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=2, pin_memory=True)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, generator=g, num_workers=2, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=2, pin_memory=True)
 
-# Training loop
-model = SiameseNet().to(device)
-criterion = ContrastiveLoss()
-optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
-scaler = GradScaler()
+    # Model setup
+    model = SiameseNet().to(device)
+    criterion = ContrastiveLoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+    scaler = GradScaler()
 
-best_acc = 0
-patience = 5
-counter = 0
+    best_acc = 0
+    patience = 5
+    counter = 0
 
-for epoch in range(50):
-    model.train()
-    all_train_preds, all_train_labels = [], []
-    total_train_loss = 0
-    for img1, img2, label in tqdm(train_loader, desc=f"[Train] Epoch {epoch+1}/50"):
-        img1, img2, label = img1.to(device), img2.to(device), label.to(device)
-        optimizer.zero_grad()
-        with autocast():
-            feat1, feat2 = model(img1, img2)
-            loss = criterion(feat1, feat2, label)
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
+    for epoch in range(50):
+        model.train()
+        all_train_preds, all_train_labels = [], []
+        total_train_loss = 0
 
-        total_train_loss += loss.item()
-        with torch.no_grad():
-            distance = F.pairwise_distance(feat1, feat2)
-            preds = (distance < 0.5).float()
-            all_train_preds.extend(preds.cpu().numpy())
-            all_train_labels.extend(label.cpu().numpy())
-
-    train_acc, train_prec, train_recall, train_f1 = compute_all_metrics(all_train_preds, all_train_labels)
-    avg_train_loss = total_train_loss / len(train_loader)
-
-#validation loop
-    model.eval()
-    all_val_preds, all_val_labels = [], []
-    total_val_loss = 0
-    with torch.no_grad():
-        for img1, img2, label in tqdm(val_loader, desc=f"[Val] Epoch {epoch+1}/50"):
+        for img1, img2, label in tqdm(train_loader, desc=f"[Train] Epoch {epoch+1}/50"):
             img1, img2, label = img1.to(device), img2.to(device), label.to(device)
-            feat1, feat2 = model(img1, img2)
-            loss = criterion(feat1, feat2, label)
-            total_val_loss += loss.item()
+            optimizer.zero_grad()
+            with autocast():
+                feat1, feat2 = model(img1, img2)
+                loss = criterion(feat1, feat2, label)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
-            distance = F.pairwise_distance(feat1, feat2)
-            preds = (distance < 0.5).float()
-            all_val_preds.extend(preds.cpu().numpy())
-            all_val_labels.extend(label.cpu().numpy())
+            total_train_loss += loss.item()
+            with torch.no_grad():
+                distance = F.pairwise_distance(feat1, feat2)
+                preds = (distance < 0.5).float()
+                all_train_preds.extend(preds.cpu().numpy())
+                all_train_labels.extend(label.cpu().numpy())
 
-    val_acc, val_prec, val_recall, val_f1 = compute_all_metrics(all_val_preds, all_val_labels)
-    avg_val_loss = total_val_loss / len(val_loader)
+        train_acc, train_prec, train_recall, train_f1 = compute_all_metrics(all_train_preds, all_train_labels)
+        avg_train_loss = total_train_loss / len(train_loader)
 
-    print(f"Epoch {epoch+1}: Train Loss={avg_train_loss:.4f}, Train Acc={train_acc:.4f}, Precision={train_prec:.4f}, Recall={train_recall:.4f}, F1={train_f1:.4f}")
-    print(f"Epoch {epoch+1}: Val Loss={avg_val_loss:.4f}, Val Acc={val_acc:.4f}, Precision={val_prec:.4f}, Recall={val_recall:.4f}, F1={val_f1:.4f}\n")
+        # Validation
+        model.eval()
+        all_val_preds, all_val_labels = [], []
+        total_val_loss = 0
+        with torch.no_grad():
+            for img1, img2, label in tqdm(val_loader, desc=f"[Val] Epoch {epoch+1}/50"):
+                img1, img2, label = img1.to(device), img2.to(device), label.to(device)
+                feat1, feat2 = model(img1, img2)
+                loss = criterion(feat1, feat2, label)
+                total_val_loss += loss.item()
 
-#Saving best model and early stopping
-    
-    if val_acc > best_acc:
-        best_acc = val_acc
-        os.makedirs("weights", exist_ok=True)
-        torch.save(model.state_dict(), 'comsys-hackathon-taskB/weights/best_siamese_convnext.pt')
-        counter = 0
-    else:
-        counter += 1
-        if counter >= patience:
-            print("Early stopping triggered.")
-            break
+                distance = F.pairwise_distance(feat1, feat2)
+                preds = (distance < 0.5).float()
+                all_val_preds.extend(preds.cpu().numpy())
+                all_val_labels.extend(label.cpu().numpy())
 
-    scheduler.step()
+        val_acc, val_prec, val_recall, val_f1 = compute_all_metrics(all_val_preds, all_val_labels)
+        avg_val_loss = total_val_loss / len(val_loader)
+
+        print(f"Epoch {epoch+1}: Train Loss={avg_train_loss:.4f}, Train Acc={train_acc:.4f}, Precision={train_prec:.4f}, Recall={train_recall:.4f}, F1={train_f1:.4f}")
+        print(f"Epoch {epoch+1}: Val Loss={avg_val_loss:.4f}, Val Acc={val_acc:.4f}, Precision={val_prec:.4f}, Recall={val_recall:.4f}, F1={val_f1:.4f}\n")
+
+        # Save best model
+        if val_acc > best_acc:
+            best_acc = val_acc
+            os.makedirs("comsys-hackathon-taskB/weights", exist_ok=True)
+            torch.save(model.state_dict(), 'comsys-hackathon-taskB/weights/best_siamese_convnext.pt')
+            counter = 0
+        else:
+            counter += 1
+            if counter >= patience:
+                print("Early stopping triggered.")
+                break
+
+        scheduler.step()
+
+# === Entry Point ===
+if __name__ == "__main__":
+    main()
