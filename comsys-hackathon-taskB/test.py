@@ -144,7 +144,7 @@ def main():
 
     # === Load Best Model ===
     model = SiameseNet().to(device)
-    model.load_state_dict(torch.load('weights/best_siamese_convnext.pth'))
+    model.load_state_dict(torch.load('weights/best_siamese_convnext.pt'))
     model.eval()
 
     criterion = ContrastiveLoss()
