@@ -64,7 +64,7 @@ class ConvNeXtGenderClassifier(nn.Module):
 # Test code entry point
 def main():
     test_path = "data/Task_A/val"  # Change this if needed
-    model_path = "best_convnext_gender_model.pth"
+    model_path = "best_convnext_gender_model1.pt"
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
