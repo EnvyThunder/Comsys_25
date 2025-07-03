@@ -135,7 +135,7 @@ def compute_all_metrics(preds, labels):
 
 # === Test Dataset Path ===
 def main():
-    test_dir = "comsys-hackathon-taskB/test_data"
+    test_dir = "/comsys-hackathon-taskB/test_data"
     flatten_distortion_folders(test_dir)  # Optional if distortion/ folder exists
 
     # === Test Dataset and DataLoader ===
