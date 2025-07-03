@@ -222,7 +222,7 @@ for epoch in range(50):
     if val_acc > best_acc:
         best_acc = val_acc
         os.makedirs("weights", exist_ok=True)
-        torch.save(model.state_dict(), 'weights/best_siamese_convnext.pt')
+        torch.save(model.state_dict(), 'comsys-hackathon-taskB/weights/best_siamese_convnext.pt')
         counter = 0
     else:
         counter += 1
