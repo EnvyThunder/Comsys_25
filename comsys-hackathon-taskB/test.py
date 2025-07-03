@@ -135,7 +135,7 @@ def compute_all_metrics(preds, labels):
 
 # === Test Dataset Path ===
 def main():
-    test_dir = "/comsys-hackathon-taskB/test_data"
+    test_dir = "test_data"
     flatten_distortion_folders(test_dir)  # Optional if distortion/ folder exists
 
     # === Test Dataset and DataLoader ===
@@ -144,7 +144,7 @@ def main():
 
     # === Load Best Model ===
     model = SiameseNet().to(device)
-    model.load_state_dict(torch.load('best_siamese_convnext.pth'))
+    model.load_state_dict(torch.load('weights/best_siamese_convnext.pth'))
     model.eval()
 
     criterion = ContrastiveLoss()
