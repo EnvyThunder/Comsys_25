@@ -128,8 +128,8 @@ def compute_all_metrics(preds, labels):
     return acc, precision, recall, f1
 
 # Loading data
-train = "/kaggle/working/Comys_Hackathon5/Task_B/train"
-val = "/kaggle/working/Comys_Hackathon5/Task_B/val"
+train = "data/Task_B/train"
+val = "data/Task_B/val"
 flatten_distortion_folders(train)
 flatten_distortion_folders(val)
 
@@ -221,7 +221,8 @@ for epoch in range(50):
     
     if val_acc > best_acc:
         best_acc = val_acc
-        torch.save(model.state_dict(), 'best_siamese_convnext.pt')
+        os.makedirs("weights", exist_ok=True)
+        torch.save(model.state_dict(), 'comsys-hackathon-taskB/weights/best_siamese_convnext.pt')
         counter = 0
     else:
         counter += 1
