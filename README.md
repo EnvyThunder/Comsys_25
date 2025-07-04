@@ -171,7 +171,7 @@ These metrics help assess the model's performance under skewed data and noisy vi
 
 ## 🤝 Contributors
 
-- [Hrishikesh Bhanja](https://github.com/EnvyThunder)[Antariksh Sengupta] — Deep learning model development, training logic
+- [Hrishikesh Bhanja] [Soham Neogi] [Antariksh Sengupta] — Deep learning model development, training logic
 - COMSYS Hackathon 5 Organizers — Dataset and evaluation framework
 
 ---
