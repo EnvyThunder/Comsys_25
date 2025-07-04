@@ -1,7 +1,6 @@
 import os
-
-import numpy as np
 import random
+import numpy as np
 from PIL import Image
 from collections import defaultdict
 
@@ -13,7 +12,8 @@ from torch.cuda.amp import GradScaler, autocast
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-import timm 
+import timm
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 def main():
     # Seeding made fixed
@@ -27,7 +27,7 @@ def main():
 
     seed_everything(42)
 
-    # Dataset class with undersampling done
+    # Dataset with optional undersampling
     class FaceGenderDataset(Dataset):
         def __init__(self, root_dir, transform=None, undersample=False):
             self.samples = []
@@ -79,21 +79,20 @@ def main():
         transforms.ToTensor(),
     ])
 
-    # Setting random seed for reproducibility
+    # Data Loaders
     g = torch.Generator()
     g.manual_seed(42)
 
-    # Train and val loaders
-    train_dataset = FaceGenderDataset("data/Task_A/train", transform=train_transform, undersample=True)
-    val_dataset = FaceGenderDataset("data/Task_A/train", transform=val_transform)
+    train_dataset = FaceGenderDataset("/kaggle/working/Comys_Hackathon5/Task_A/train", transform=train_transform, undersample=True)
+    val_dataset = FaceGenderDataset("/kaggle/working/Comys_Hackathon5/Task_A/train", transform=val_transform)
 
-    train_loader = DataLoader(train_dataset, batch_size=32, generator=g, shuffle=True, num_workers=2)
-    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=2)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, generator=g, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=0)
 
-    # Cuda initialisation
+    # Device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # === Focal Loss with Label Smoothing ===
+    # Focal Loss with Label Smoothing
     class FocalLossWithSmoothing(nn.Module):
         def __init__(self, smoothing=0.1, alpha=1, gamma=2):
             super().__init__()
@@ -108,40 +107,39 @@ def main():
             focal_loss = self.alpha * ((1 - pt) ** self.gamma * bce)
             return focal_loss.mean()
 
-    # ConvNext_Atto Model
+    # ConvNeXt Model
     class ConvNeXtGenderClassifier(nn.Module):
         def __init__(self, backbone='convnext_atto'):
             super().__init__()
             self.backbone = timm.create_model(backbone, pretrained=True, num_classes=0)
-            self.classifier = nn.Linear(self.backbone.num_features, 1)  # Binary classification
+            self.classifier = nn.Linear(self.backbone.num_features, 1)
 
         def forward(self, x):
             features = self.backbone(x)
             return self.classifier(features).squeeze(1)
 
+    # Model
     model = ConvNeXtGenderClassifier().to(device)
 
-    # === Loss, Optimizer, Scheduler, Scaler ===
+    # Optimizer, Loss, Scheduler, AMP
     criterion = FocalLossWithSmoothing(smoothing=0.1)
     optimizer = optim.AdamW(model.parameters(), lr=1e-4)
     scheduler = CosineAnnealingLR(optimizer, T_max=10)
     scaler = GradScaler()
 
-    # Setting up training
+    # Training Setup
     best_val_acc = 0.0
     best_model_state = None
 
     epochs = 20
-    train_losses, val_losses = [], []
-    train_accuracies, val_accuracies = [], []
-
     print("\n" + "="*20 + " Training ConvNeXt with Undersampling " + "="*20 + "\n")
 
-    # Training Loop
     for epoch in range(epochs):
+        # === Train ===
         model.train()
-        running_loss = 0.0
-        correct, total = 0, 0
+        train_loss = 0.0
+        total = 0
+        all_preds, all_labels = [], []
 
         for images, labels in train_loader:
             images = images.to(device)
@@ -157,20 +155,29 @@ def main():
             scaler.step(optimizer)
             scaler.update()
 
-            running_loss += loss.item() * images.size(0)
-            preds = (torch.sigmoid(outputs) > 0.5).long()
-            correct += (preds == labels.long()).sum().item()
+            train_loss += loss.item() * images.size(0)
+            probs = torch.sigmoid(outputs)
+            preds = (probs > 0.5).long()
+
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.long().cpu().numpy())
             total += labels.size(0)
 
-        train_loss = running_loss / total
-        train_acc = correct / total
-        train_losses.append(train_loss)
-        train_accuracies.append(train_acc)
+        avg_train_loss = train_loss / total
+        train_acc = accuracy_score(all_labels, all_preds)
+        train_prec = precision_score(all_labels, all_preds, zero_division=0)
+        train_rec = recall_score(all_labels, all_preds, zero_division=0)
+        train_f1 = f1_score(all_labels, all_preds, zero_division=0)
 
-        # Val loop
+        print(f"\n[Epoch {epoch+1}] TRAINING METRICS")
+        print(f"Loss: {avg_train_loss:.4f}")
+        print(f"Accuracy: {train_acc:.4f} | Precision: {train_prec:.4f} | Recall: {train_rec:.4f} | F1 Score: {train_f1:.4f}")
+
+        # === Validation ===
         model.eval()
-        val_running_loss = 0.0
-        val_correct, val_total = 0, 0
+        val_loss = 0.0
+        val_total = 0
+        val_preds, val_labels_list = [], []
 
         with torch.no_grad():
             for images, labels in val_loader:
@@ -181,37 +188,41 @@ def main():
                     outputs = model(images)
                     loss = criterion(outputs, labels)
 
-                val_running_loss += loss.item() * images.size(0)
-                preds = (torch.sigmoid(outputs) > 0.5).long()
-                val_correct += (preds == labels.long()).sum().item()
+                val_loss += loss.item() * images.size(0)
+                probs = torch.sigmoid(outputs)
+                preds = (probs > 0.5).long()
+
+                val_preds.extend(preds.cpu().numpy())
+                val_labels_list.extend(labels.long().cpu().numpy())
                 val_total += labels.size(0)
 
-        val_loss = val_running_loss / val_total
-        val_acc = val_correct / val_total
-        val_losses.append(val_loss)
-        val_accuracies.append(val_acc)
+        avg_val_loss = val_loss / val_total
+        val_acc = accuracy_score(val_labels_list, val_preds)
+        val_prec = precision_score(val_labels_list, val_preds, zero_division=0)
+        val_rec = recall_score(val_labels_list, val_preds, zero_division=0)
+        val_f1 = f1_score(val_labels_list, val_preds, zero_division=0)
+
+        print(f"\n[Epoch {epoch+1}] VALIDATION METRICS")
+        print(f"Loss: {avg_val_loss:.4f}")
+        print(f"Accuracy: {val_acc:.4f} | Precision: {val_prec:.4f} | Recall: {val_rec:.4f} | F1 Score: {val_f1:.4f}")
 
         scheduler.step()
-
-        # Showing the output
-        print(f"Epoch {epoch+1}/{epochs} - "
-              f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, "
-              f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             best_model_state = model.state_dict().copy()
-            print(f"✅ Best model updated (val_acc: {best_val_acc:.4f})")
+            print(f"\n✅ Best model updated (val_acc: {best_val_acc:.4f})")
 
-    # Saving the best model and its weights
+    # === Save Best Model ===
     if best_model_state is not None:
-        torch.save(best_model_state, "comsys-hackathon-taskA/weights/best_convnext_gender_model1.pt")
+        torch.save(best_model_state, "best_convnext_gender_model.pth")
         print("\n" + "="*50)
-        print("✅ Best model saved as 'best_convnext_gender_model.pt'")
+        print("✅ Best model saved as 'best_convnext_gender_model.pth'")
         print(f"Final Best Validation Accuracy: {best_val_acc:.2%}")
         print("="*50)
     else:
         print("⚠️ No best model state was saved!")
+
 
 # === Entry Point Guard ===
 if __name__ == "__main__":
