@@ -31,6 +31,9 @@ seed_everything(42)
 #Cuda declaration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+
+
+
 #distortion folder flattening 
 def flatten_distortion_folders(root_dir):
     for class_name in os.listdir(root_dir):
@@ -130,13 +133,13 @@ def compute_all_metrics(preds, labels):
 
 # === Test Dataset Path ===
 def main():
+
     test_transform = A.Compose([
     A.Resize(224, 224),
     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
     ToTensorV2()
     ])
-
-    test_dir = "test_data"
+    test_dir = "test_data/val"
     flatten_distortion_folders(test_dir)  # Optional if distortion/ folder exists
 
     # === Test Dataset and DataLoader ===
@@ -145,7 +148,8 @@ def main():
 
     # === Load Best Model ===
     model = SiameseNet().to(device)
-    model.load_state_dict(torch.load('weights/best_siamese_convnext.pt'))
+    model.load_state_dict(torch.load('weights/best_siamese_convnext.pt' ,map_location=torch.device('cpu')))
+
     model.eval()
 
     criterion = ContrastiveLoss()
