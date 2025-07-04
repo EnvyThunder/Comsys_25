@@ -28,126 +28,157 @@
 
 ---
 
-# 🧠 Task A: Gender Classification
+# COMSYS Hackathon Task A - Gender Classification in Adverse Visual Conditions
 
-This repository implements a **ConvNeXt‑Atto**‑based classifier to predict gender (male/female) from face images. Class imbalance is handled via random undersampling of the majority (male) class and focal loss with label smoothing.
+This repository contains the complete pipeline for gender classification using deep learning models (including ConvNeXt and Siamese architectures) trained and evaluated under identity-disjoint and visually degraded conditions.
 
----
+## 🚀 Project Overview
 
-## 📂 Dataset Layout (after download)
+Task A of COMSYS Hackathon 5 focuses on **gender classification** from facial images with:
+- **Adverse visual conditions** (e.g., blur, occlusion, poor lighting)
+- **Identity disjoint train/val/test split**
 
-```
-Comys_Hackathon5/
-└── Task_A/
-    ├── train/
-    │   ├── male/
-    │   │   ├── img_001.jpg
-    │   │   └── ...
-    │   └── female/
-    │       ├── img_777.jpg
-    │       └── ...
-    └── val/
-        ├── male/
-        └── female/
-```
+Our pipeline includes:
+- Dataset preprocessing and balancing
+- Training using ConvNeXt with focal loss and label smoothing
+- Evaluation with accuracy, precision, recall, and F1-score
+- Siamese model support for verification-style classification
 
 ---
 
-## 🧹 Data Pre‑processing
+## 🛠️ Setup Instructions
 
-| Step                     | Purpose                                                                                              |
-| ------------------------ | ---------------------------------------------------------------------------------------------------- |
-| **Random undersampling** | Reduce 1623 male images down to 303 to match female count; mitigates class bias.                     |
-| **Augmentations**        | Resize → 224×224, `HorizontalFlip`, `ColorJitter`, `RandomRotation(±15°)` to improve generalisation. |
+### Step 1: Clone the Repository
 
-All transforms implemented with **torchvision**.
-
----
-
-## 🏗️ Model Architecture
-
-```
-ConvNeXt‑Atto (pre‑trained, features only)
-       ↓
-Linear(num_features → 1)
+```bash
+git clone https://github.com/EnvyThunder/Comsys_25
+cd comsys-hackathon-taskA
 ```
 
-* **Backbone**: ConvNeXt‑Atto from [`timm`](https://github.com/huggingface/pytorch-image-models) with frozen weights.
-* **Head**: Single linear layer ➔ sigmoid via `BCEWithLogits`.
+### Step 2: Create a Virtual Environment
 
----
-
-## 📉 Loss Function
-
-### Focal Loss + Label Smoothing
-
-```
-FL = α · (1 − p_t)^γ · CE_smooth
+```bash
+python3 -m venv venv
 ```
 
-* Smoothing ε = 0.1
-* γ = 2, α = 1
+### Step 3: Activate the Virtual Environment
 
-Provides extra focus on hard / minority samples.
+```bash
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+```
 
----
-
-## 🚀 Training Configuration
-
-| Setting         | Value                    |
-| --------------- | ------------------------ |
-| Optimizer       | AdamW                    |
-| Base LR         | 1e‑4                     |
-| Scheduler       | CosineAnnealingLR (T=10) |
-| Epochs          | 50                       |
-| Batch Size      | 32                       |
-| Mixed Precision | ✅ (`torch.cuda.amp`)     |
-| Model Selection | Highest validation acc   |
-
----
-
-## ✅ Results
-
-| Metric                       | Value       |
-| ---------------------------- | ----------- |
-| **Best Validation Accuracy** | **96.37 %** |
-
-The best checkpoint is saved to `weights/best_convnext_gender_model.pth` and loaded automatically by `test.py`.
-
----
-
-## 🛠️ Requirements
+### Step 4: Install All Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-* **Key Libraries:** PyTorch ≥ 2.0, `timm`, `torchvision`, `Pillow`
-
 ---
 
-## 🔄 Training & Evaluation
+## 📦 Dataset Setup
+
+### Step 5: Download Dataset
+
+The dataset will be downloaded and organized into the required structure using:
 
 ```bash
-# Train
-python train.py --data_dir /path/to/Comys_Hackathon5/Task_A --epochs 50
+python3 download_data.py
+```
 
-# Inference on organiser test set
-python test.py  --weights weights/best_convnext_gender_model.pth \
-                --img_dir  test_data/ \
-                --output   submission.csv
+> ⚠️ The script uses a Google Drive link embedded internally. Ensure you have internet access.
+
+Expected structure after download:
+
+```
+Comys_Hackathon5/
+├── Task_A/
+│   ├── train/
+│   │   ├── male/
+│   │   └── female/
+│   └── val/
+│       ├── male/
+│       └── female/
 ```
 
 ---
 
-## ✍️ Notes
+## 🏋️‍♂️ Training
 
-* Class imbalance is tackled via **undersampling + focal loss** rather than oversampling to keep training stable.
-* ConvNeXt‑Atto offers an excellent speed/accuracy trade‑off, ideal for limited GPU quotas.
-* Further gains could come from class‑balanced loss or larger ConvNeXt variants if compute allows.
+### Step 6: Run the Training Script
+
+```bash
+python3 train.py --data_dir /path/to/Comys_Hackathon5/Task_A --epochs 20
+```
+
+- You can adjust `--epochs`, `--batch_size`, and other arguments in the script.
+- The best model will be saved as: `weights/best_convnext_gender_model.pth`
 
 ---
 
+## 🧪 Inference
+
+### Step 7: Prepare Test Set
+
+Place your test images inside the `test_data/` directory:
+
+```
+test_data/
+├── image1.jpg
+├── image2.jpg
+└── ...
+```
+
+### Step 8: Run Inference and Generate Submission
+
+```bash
+python3 test.py   --weights weights/best_siamese_convnext1.pt   --img_dir test_data/   --output submission.csv
+```
+
+---
+
+## 📈 Evaluation Metrics
+
+During training and validation, the following metrics are printed at the end of each epoch:
+
+- **Accuracy**
+- **Precision**
+- **Recall**
+- **F1 Score**
+
+These metrics help assess the model's performance under skewed data and noisy visual conditions.
+
+---
+
+## 📎 Key Features
+
+- ✅ ConvNeXt Atto backbone with Focal Loss + Label Smoothing
+- ✅ Undersampling to handle class imbalance
+- ✅ AMP (mixed precision) training
+- ✅ Identity-disjoint training/validation setup
+- ✅ Support for Siamese verification models
+- ✅ Metric-rich training logs
+
+---
+
+## 🧠 Future Improvements
+
+- Add ensemble support with Swin/ViT backbones
+- Integrate Grad-CAM for model explainability
+- Automatically detect skewed classes and resample
+- Deploy using Gradio or Streamlit
+
+---
+
+## 🤝 Contributors
+
+- [Hrishikesh Bhanja](https://github.com/EnvyThunder)[Antariksh Sengupta] — Deep learning model development, training logic
+- COMSYS Hackathon 5 Organizers — Dataset and evaluation framework
+
+---
+
+## 📄 License
+
+This project is open-sourced under the MIT License. See the [LICENSE](LICENSE) file for more details.
 # 🧠 Task B: Face Recognition (Siamese Network)
 
 This repository implements a Siamese Neural Network using a ConvNeXt-Atto encoder for face verification under distortion. The network learns to embed similar faces closer together while pushing dissimilar pairs apart using Contrastive Loss.
