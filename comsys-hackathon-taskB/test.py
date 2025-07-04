@@ -139,7 +139,7 @@ def main():
     A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
     ToTensorV2()
     ])
-    test_dir = "test_data/val"
+    test_dir = "test_data"
     flatten_distortion_folders(test_dir)  # Optional if distortion/ folder exists
 
     # === Test Dataset and DataLoader ===
