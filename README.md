@@ -192,7 +192,7 @@ Follow these steps to set up your environment and run the project:
 ```bash
 # Step 1: Clone the repository
 git clone https://github.com/EnvyThunder/Comsys_25
-cd Comsys_25
+cd comsys-hackathon-taskB
 
 # Step 2: Create a virtual environment
 python3 -m venv venv
