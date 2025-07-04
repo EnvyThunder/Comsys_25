@@ -1,9 +1,4 @@
 
-test_transform = A.Compose([
-    A.Resize(224, 224),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
-    ToTensorV2()
-])
 
 import os
 import random
@@ -135,6 +130,12 @@ def compute_all_metrics(preds, labels):
 
 # === Test Dataset Path ===
 def main():
+    test_transform = A.Compose([
+    A.Resize(224, 224),
+    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+    ToTensorV2()
+    ])
+
     test_dir = "test_data"
     flatten_distortion_folders(test_dir)  # Optional if distortion/ folder exists
 
