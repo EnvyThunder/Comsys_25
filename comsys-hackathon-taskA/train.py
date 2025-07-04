@@ -83,8 +83,8 @@ def main():
     g = torch.Generator()
     g.manual_seed(42)
 
-    train_dataset = FaceGenderDataset("/kaggle/working/Comys_Hackathon5/Task_A/train", transform=train_transform, undersample=True)
-    val_dataset = FaceGenderDataset("/kaggle/working/Comys_Hackathon5/Task_A/train", transform=val_transform)
+    train_dataset = FaceGenderDataset("data/Task_A/train", transform=train_transform, undersample=True)
+    val_dataset = FaceGenderDataset("data/Task_A/val", transform=val_transform)
 
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, generator=g, num_workers=0)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=0)
