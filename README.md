@@ -46,7 +46,7 @@ Our pipeline includes:
 
 ---
 
-## 🛠️ Setup Instructions
+## 🛠️ Setup Instructions for TASK A
 
 ### Step 1: Clone the Repository
 
@@ -73,11 +73,23 @@ source venv/bin/activate  # On Windows use: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+## Step 5: Download the Pretrained Weights file
+
+Pretrained weights file was too big to be uploaded on Github hence 
+you'll have to call the following on your terminal/cmd prompt
+
+This will upload the 
+
+```bash
+python3 dowload_weights.py
+```
+
 ---
+
 
 ## 📦 Dataset Setup
 
-### Step 5: Download Dataset
+### Step 5: Download Dataset 
 
 The dataset will be downloaded and organized into the required structure using:
 
