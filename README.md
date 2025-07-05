@@ -240,7 +240,7 @@ python3 download_data.py  # Downloads and sets up dataset locally
 # Step 6: Run training (adjust path if needed)
 
 ```bash
-python3 train.py --data_dir /path/to/Comys_Hackathon5/Task_B --epochs 50
+python3 train.py --data_dir /path/to/Comys_Hackathon5/Task_B --epochs 20
 ```
 
 # Step 7: Place test dataset inside the `test_data/` directory
