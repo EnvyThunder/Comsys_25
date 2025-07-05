@@ -231,7 +231,7 @@ def main():
 
     if best_model_state is not None:
         os.makedirs("weights", exist_ok=True)
-        torch.save(best_model_state, "weights/best_convnext_gender_model_final.pth")
+        torch.save(best_model_state, "weights/best_convnext_gender_model.pth")
         print("\n" + "=" * 50)
         print("✅ Best model saved as 'best_convnext_gender_model.pth'")
         print(f"🏆 Final Best Validation Accuracy: {best_val_acc:.2%}")
