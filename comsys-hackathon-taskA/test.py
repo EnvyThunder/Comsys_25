@@ -1,6 +1,7 @@
 import os
 import random
 from PIL import Image
+import gdown
 
 import torch
 import torch.nn as nn
@@ -9,6 +10,15 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import timm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+
+
+
+
+if not os.path.exists("weights/best_convnext_gender_model.pth"):
+    url = "https://drive.google.com/uc?id=1Q97l7ROkH5MrO3hc-5D6ugAo2sOyXaMQ"
+    gdown.download(url, "weights/best_convnext_gender_model.pth", quiet=False)
+
 
 
 class FaceGenderDataset(Dataset):
