@@ -220,7 +220,7 @@ def main():
         # Save best model
         if val_acc > best_acc:
             best_acc = val_acc
-            os.makedirs("comsys-hackathon-taskB/weights", exist_ok=True)
+            os.makedirs("weights", exist_ok=True)
             torch.save(model.state_dict(), 'weights/best_siamese_convnext.pt')
             counter = 0
         else:
