@@ -175,7 +175,7 @@ def main():
         all_train_preds, all_train_labels = [], []
         total_train_loss = 0
 
-        for img1, img2, label in tqdm(train_loader, desc=f"[Train] Epoch {epoch+1}/50"):
+        for img1, img2, label in tqdm(train_loader, desc=f"[Train] Epoch {epoch+1}/20"):
             img1, img2, label = img1.to(device), img2.to(device), label.to(device)
             optimizer.zero_grad()
             with autocast():
@@ -200,7 +200,7 @@ def main():
         all_val_preds, all_val_labels = [], []
         total_val_loss = 0
         with torch.no_grad():
-            for img1, img2, label in tqdm(val_loader, desc=f"[Val] Epoch {epoch+1}/50"):
+            for img1, img2, label in tqdm(val_loader, desc=f"[Val] Epoch {epoch+1}/20"):
                 img1, img2, label = img1.to(device), img2.to(device), label.to(device)
                 feat1, feat2 = model(img1, img2)
                 loss = criterion(feat1, feat2, label)
