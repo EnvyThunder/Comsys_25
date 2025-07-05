@@ -23,7 +23,7 @@
 │   ├── test.py                          # inference script
 │   └── requirements.txt
 │
-└──Comys5 Tech Summary (1).pdf       # Technical Summary overview pdf
+└──Comsys5 Tech Summary (1).pdf       # Technical Summary overview pdf
 └── README.md                            # technical overview
 ```
 
