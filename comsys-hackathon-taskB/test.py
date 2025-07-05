@@ -1,5 +1,3 @@
-
-
 import os
 import random
 import shutil
@@ -18,6 +16,7 @@ from albumentations.pytorch import ToTensorV2
 import timm
 from sklearn.metrics import precision_score, recall_score, f1_score
 
+# ============ Seeding for Reproducibility ============
 def seed_everything(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -28,13 +27,9 @@ def seed_everything(seed=42):
 
 seed_everything(42)
 
-#Cuda declaration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
-
-
-#distortion folder flattening 
+# ============ Flatten Distortion Folders ============
 def flatten_distortion_folders(root_dir):
     for class_name in os.listdir(root_dir):
         class_path = os.path.join(root_dir, class_name)
@@ -47,7 +42,7 @@ def flatten_distortion_folders(root_dir):
                     shutil.move(src, dst)
             os.rmdir(distortion_path)
 
-# Siamese Dataset
+# ============ Siamese Dataset ============
 class SiameseDistortionDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir
@@ -90,7 +85,7 @@ class SiameseDistortionDataset(Dataset):
             img2 = self.transform(image=img2)['image']
         return img1, img2, label
 
-# Dataset for the Siamese model
+# ============ Siamese Network ============
 class SiameseNet(nn.Module):
     def __init__(self):
         super().__init__()
@@ -110,7 +105,7 @@ class SiameseNet(nn.Module):
     def forward(self, x1, x2):
         return self.forward_once(x1), self.forward_once(x2)
 
-# Loss function
+# ============ Contrastive Loss ============
 class ContrastiveLoss(nn.Module):
     def __init__(self, margin=1.0):
         super().__init__()
@@ -118,67 +113,72 @@ class ContrastiveLoss(nn.Module):
 
     def forward(self, feat1, feat2, label):
         distance = F.pairwise_distance(feat1, feat2)
-        loss = label * distance.pow(2) + (1 - label) * (torch.clamp(self.margin - distance, min=0.0).pow(2))
+        loss = label * distance.pow(2) + (1 - label) * torch.clamp(self.margin - distance, min=0.0).pow(2)
         return loss.mean()
 
-# Calculating metrics
+# ============ Evaluation Metrics ============
 def compute_all_metrics(preds, labels):
     preds_np = np.array(preds)
     labels_np = np.array(labels)
+
     acc = (preds_np == labels_np).mean()
-    precision = precision_score(labels_np, preds_np, zero_division=0)
-    recall = recall_score(labels_np, preds_np, zero_division=0)
-    f1 = f1_score(labels_np, preds_np, zero_division=0)
-    return acc, precision, recall, f1
 
-# === Test Dataset Path ===
+    # Binary metrics (class 1)
+    precision_bin = precision_score(labels_np, preds_np, average='binary', zero_division=0)
+    recall_bin = recall_score(labels_np, preds_np, average='binary', zero_division=0)
+    f1_bin = f1_score(labels_np, preds_np, average='binary', zero_division=0)
+
+    # Macro-averaged metrics (across both classes)
+    precision_macro = precision_score(labels_np, preds_np, average='macro', zero_division=0)
+    recall_macro = recall_score(labels_np, preds_np, average='macro', zero_division=0)
+    f1_macro = f1_score(labels_np, preds_np, average='macro', zero_division=0)
+
+    return acc, precision_bin, recall_bin, f1_bin, precision_macro, recall_macro, f1_macro
+
+# ============ Main ============
 def main():
-
     test_transform = A.Compose([
-    A.Resize(224, 224),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
-    ToTensorV2()
+        A.Resize(224, 224),
+        A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+        ToTensorV2()
     ])
-    test_dir = "test_data"
-    flatten_distortion_folders(test_dir)  # Optional if distortion/ folder exists
 
-    # === Test Dataset and DataLoader ===
+    test_dir = "test_data"
+    flatten_distortion_folders(test_dir)
+
     test_dataset = SiameseDistortionDataset(root_dir=test_dir, transform=test_transform)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, num_workers=2, pin_memory=True)
 
-    # === Load Best Model ===
     model = SiameseNet().to(device)
-    model.load_state_dict(torch.load('weights/best_siamese_convnext.pt' ,map_location=torch.device('cpu')))
-
+    model.load_state_dict(torch.load('weights/best_siamese_convnext.pt', map_location=device))
     model.eval()
 
     criterion = ContrastiveLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
 
-
-    # === Test Loop ===
-    all_test_preds, all_test_labels = [], []
-    total_test_loss = 0
+    all_preds = []
+    all_labels = []
+    total_loss = 0.0
 
     with torch.no_grad():
         for img1, img2, label in tqdm(test_loader, desc="[Test]"):
             img1, img2, label = img1.to(device), img2.to(device), label.to(device)
+
             feat1, feat2 = model(img1, img2)
             loss = criterion(feat1, feat2, label)
-            total_test_loss += loss.item()
+            total_loss += loss.item()
 
             distance = F.pairwise_distance(feat1, feat2)
             preds = (distance < 0.5).float()
-            all_test_preds.extend(preds.cpu().numpy())
-            all_test_labels.extend(label.cpu().numpy())
 
-    # === Metrics ===
-    avg_test_loss = total_test_loss / len(test_loader)
-    test_acc, test_prec, test_recall, test_f1 = compute_all_metrics(all_test_preds, all_test_labels)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(label.cpu().numpy())
 
-    print(f"Test Loss={avg_test_loss:.4f}, Test Acc={test_acc:.4f}, Precision={test_prec:.4f}, Recall={test_recall:.4f}, F1={test_f1:.4f}")
+    avg_loss = total_loss / len(test_loader)
+    acc, prec_bin, rec_bin, f1_bin, prec_macro, rec_macro, f1_macro = compute_all_metrics(all_preds, all_labels)
 
+    print(f"\nTest Loss: {avg_loss:.4f}, Accuracy: {acc:.4f}")
+    print(f"Binary Precision: {prec_bin:.4f}, Recall: {rec_bin:.4f}, F1: {f1_bin:.4f}")
+    print(f"Macro  Precision: {prec_macro:.4f}, Recall: {rec_macro:.4f}, F1: {f1_macro:.4f}")
 
 if __name__ == "__main__":
     main()
