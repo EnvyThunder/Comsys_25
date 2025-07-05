@@ -23,6 +23,7 @@
 │   ├── test.py                          # inference script
 │   └── requirements.txt
 │
+└──Comsys Technical Overview.pdf       # Technical Summary overview pdf
 └── README.md                            # technical overview
 ```
 
@@ -363,7 +364,7 @@ Where:
 
 | Metric              | Value     |
 |---------------------|-----------|
-| Best Val Accuracy   | 97.73 %   |
+| Best Val Accuracy   | 97.41 %   |
 
 Best checkpoint saved to:
 
