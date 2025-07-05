@@ -170,12 +170,12 @@ def main():
     patience = 5
     counter = 0
 
-    for epoch in range(50):
+    for epoch in range(20):
         model.train()
         all_train_preds, all_train_labels = [], []
         total_train_loss = 0
 
-        for img1, img2, label in tqdm(train_loader, desc=f"[Train] Epoch {epoch+1}/50"):
+        for img1, img2, label in tqdm(train_loader, desc=f"[Train] Epoch {epoch+1}/20"):
             img1, img2, label = img1.to(device), img2.to(device), label.to(device)
             optimizer.zero_grad()
             with autocast():
@@ -200,7 +200,7 @@ def main():
         all_val_preds, all_val_labels = [], []
         total_val_loss = 0
         with torch.no_grad():
-            for img1, img2, label in tqdm(val_loader, desc=f"[Val] Epoch {epoch+1}/50"):
+            for img1, img2, label in tqdm(val_loader, desc=f"[Val] Epoch {epoch+1}/20"):
                 img1, img2, label = img1.to(device), img2.to(device), label.to(device)
                 feat1, feat2 = model(img1, img2)
                 loss = criterion(feat1, feat2, label)
@@ -220,7 +220,7 @@ def main():
         # Save best model
         if val_acc > best_acc:
             best_acc = val_acc
-            os.makedirs("comsys-hackathon-taskB/weights", exist_ok=True)
+            os.makedirs("weights", exist_ok=True)
             torch.save(model.state_dict(), 'weights/best_siamese_convnext.pt')
             counter = 0
         else:

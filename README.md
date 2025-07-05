@@ -6,7 +6,7 @@
 ├── comsys-hackathon-taskA/
 │   ├── test_data/                       # hold-out test images
 │   ├── weights/
-│   │   └── best_convnext_gender_model.pth
+│   │   └── best_convnext_gender_model.pth # after calling python3 download_weights.py ( from Gdrive )
 │   ├── download_data.py                 # download & unpack Task A data
 │   ├── gender_classification_convnext.ipynb  # notebook (exploration)
 │   ├── train.py                         # training script
@@ -46,7 +46,7 @@ Our pipeline includes:
 
 ---
 
-## 🛠️ Setup Instructions
+## 🛠️ Setup Instructions for TASK A
 
 ### Step 1: Clone the Repository
 
@@ -73,11 +73,28 @@ source venv/bin/activate  # On Windows use: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+## Step 5: Download the Pretrained Weights file
+
+Pretrained weights file was too big to be uploaded on Github hence 
+you'll have to call the following on your terminal/cmd prompt
+
+google drive link : https://drive.google.com/file/d/1Q97l7ROkH5MrO3hc-5D6ugAo2sOyXaMQ/view
+
+This will upload file : best_convnext_gender_model.pth
+in comsys-hackathon-taskA/weights
+
+```bash
+python3 dowload_weights.py
+```
+
 ---
+
+## Running the Training Script
+### You can ignore this and directly run test script (step 8)
 
 ## 📦 Dataset Setup
 
-### Step 5: Download Dataset
+### Step 6: Download Dataset 
 
 The dataset will be downloaded and organized into the required structure using:
 
@@ -85,29 +102,28 @@ The dataset will be downloaded and organized into the required structure using:
 python3 download_data.py
 ```
 
-> ⚠️ The script uses a Google Drive link embedded internally. Ensure you have internet access.
+> ⚠️ The script uses multiple Google Drive links embedded internally. Ensure you have internet access.
 
 Expected structure after download:
 
 ```
 Comys_Hackathon5/
-├── Task_A/
-│   ├── train/
-│   │   ├── male/
-│   │   └── female/
-│   └── val/
-│       ├── male/
-│       └── female/
+├── Comys_Hackathon5.zip
+├── data/
+│   └── Task_A/
+│       ├── train/
+│       └── val/
+
 ```
 
 ---
 
 ## 🏋️‍♂️ Training
 
-### Step 6: Run the Training Script
+### Step 7: Run the Training Script
 
 ```bash
-python3 train.py --data_dir /path/to/Comys_Hackathon5/Task_A --epochs 20
+python3 train.py 
 ```
 
 - You can adjust `--epochs`, `--batch_size`, and other arguments in the script.
@@ -117,9 +133,9 @@ python3 train.py --data_dir /path/to/Comys_Hackathon5/Task_A --epochs 20
 
 ## 🧪 Inference
 
-### Step 7: Prepare Test Set
+### Step 8: Prepare Test Set
 
-Place your test images inside the `test_data/` directory:
+### Place your test images inside the `test_data/` directory:
 
 ```
 test_data/
@@ -131,7 +147,7 @@ test_data/
 ### Step 8: Run Inference and Generate Submission
 
 ```bash
-python3 test.py   --weights weights/best_siamese_convnext1.pt   --img_dir test_data/   --output submission.csv
+python3 test.py   
 ```
 
 ---
@@ -193,25 +209,45 @@ Follow these steps to set up your environment and run the project:
 # Step 1: Clone the repository
 git clone https://github.com/EnvyThunder/Comsys_25
 cd comsys-hackathon-taskB
+```
 
 # Step 2: Create a virtual environment
+
+```bash
 python3 -m venv venv
+```
 
 # Step 3: Activate the virtual environment
+
+```bash
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
+```
 
 # Step 4: Install all dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
 # Step 5: Download dataset (Google Drive link embedded in script)
+
+you can skip this and directly go to step 7 
+
+```bash
 python3 download_data.py  # Downloads and sets up dataset locally
+```
 
 # Step 6: Run training (adjust path if needed)
+
+```bash
 python3 train.py --data_dir /path/to/Comys_Hackathon5/Task_B --epochs 50
+```
 
 # Step 7: Place test dataset inside the `test_data/` directory
 
 # Step 8: Run inference
+
+```bash
 python3 test.py --weights weights/best_siamese_convnext.pt                 --img_dir  test_data/                 --output   submission.csv
 ```
 
@@ -221,18 +257,11 @@ python3 test.py --weights weights/best_siamese_convnext.pt                 --img
 
 ```
 Comys_Hackathon5/
-└── Task_B/
-    ├── train/
-    │   ├── person_1/
-    │   │   ├── image1.jpg
-    │   │   ├── image2.jpg
-    │   │   └── distortion/        # flattened automatically
-    │   └── ...
-    └── val/
-        ├── person_2/
-        │   ├── image1.jpg
-        │   └── distortion/
-        └── ...
+├── Comys_Hackathon5.zip
+├── data/
+│   └── Task_B/
+│       ├── train/
+│       └── val/
 ```
 
 Each class folder may contain a `distortion/` subfolder with additional samples. This is flattened at runtime.
