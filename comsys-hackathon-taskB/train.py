@@ -170,7 +170,7 @@ def main():
     patience = 5
     counter = 0
 
-    for epoch in range(50):
+    for epoch in range(20):
         model.train()
         all_train_preds, all_train_labels = [], []
         total_train_loss = 0
