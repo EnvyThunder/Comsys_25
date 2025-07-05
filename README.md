@@ -245,6 +245,10 @@ python3 train.py --data_dir /path/to/Comys_Hackathon5/Task_B --epochs 20
 
 # Step 7: Place test dataset inside the `test_data/` directory
 
+```bash
+Remove the a.txt file, it is a blank file, kept because GitHub doesn't allow empty directory
+```
+
 # Step 8: Run inference
 
 ```bash
