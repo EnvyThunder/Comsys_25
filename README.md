@@ -78,7 +78,8 @@ pip install -r requirements.txt
 Pretrained weights file was too big to be uploaded on Github hence 
 you'll have to call the following on your terminal/cmd prompt
 
-This will upload the 
+This will upload file : best_convnext_gender_model.pth
+in comsys-hackathon-taskA/weights
 
 ```bash
 python3 dowload_weights.py
@@ -86,10 +87,12 @@ python3 dowload_weights.py
 
 ---
 
+## Running the Training Script
+### You can ignore this and directly run test script (step 8)
 
 ## 📦 Dataset Setup
 
-### Step 5: Download Dataset 
+### Step 6: Download Dataset 
 
 The dataset will be downloaded and organized into the required structure using:
 
@@ -97,29 +100,28 @@ The dataset will be downloaded and organized into the required structure using:
 python3 download_data.py
 ```
 
-> ⚠️ The script uses a Google Drive link embedded internally. Ensure you have internet access.
+> ⚠️ The script uses multiple Google Drive links embedded internally. Ensure you have internet access.
 
 Expected structure after download:
 
 ```
 Comys_Hackathon5/
-├── Task_A/
-│   ├── train/
-│   │   ├── male/
-│   │   └── female/
-│   └── val/
-│       ├── male/
-│       └── female/
+├── Comys_Hackathon5.zip
+├── data/
+│   └── Task_A/
+│       ├── train/
+│       └── val/
+
 ```
 
 ---
 
 ## 🏋️‍♂️ Training
 
-### Step 6: Run the Training Script
+### Step 7: Run the Training Script
 
 ```bash
-python3 train.py --data_dir /path/to/Comys_Hackathon5/Task_A --epochs 20
+python3 train.py 
 ```
 
 - You can adjust `--epochs`, `--batch_size`, and other arguments in the script.
@@ -129,9 +131,9 @@ python3 train.py --data_dir /path/to/Comys_Hackathon5/Task_A --epochs 20
 
 ## 🧪 Inference
 
-### Step 7: Prepare Test Set
+### Step 8: Prepare Test Set
 
-Place your test images inside the `test_data/` directory:
+### Place your test images inside the `test_data/` directory:
 
 ```
 test_data/
@@ -143,7 +145,7 @@ test_data/
 ### Step 8: Run Inference and Generate Submission
 
 ```bash
-python3 test.py   --weights weights/best_siamese_convnext1.pt   --img_dir test_data/   --output submission.csv
+python3 test.py   
 ```
 
 ---
